@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片转矢量 (SVG)</title>
+    <style>
+        body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; text-align: center; }
+        .upload-area { border: 2px dashed #ccc; padding: 40px; margin-bottom: 20px; border-radius: 8px; background-color: #f9f9f9; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; transition: 0.2s; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #result-container { margin-top: 30px; }
+        #svg-preview { max-width: 100%; border: 1px solid #eee; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin: 0 auto; }
+        .loading { display: none; color: #666; margin-top: 15px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>栅格图像转矢量 (Raster to SVG)</h1>
+    <div class="upload-area">
+        <input type="file" id="imageInput" accept="image/png, image/jpeg, image/webp">
+        <br><br>
+        <button id="submitBtn">开始转换</button>
+        <div id="loadingText" class="loading">正在处理中，请稍候...</div>
+    </div>
+    <div id="result-container">
+        <img id="svg-preview" alt="生成的 SVG 将显示在这里">
+        <br><br>
+        <a id="downloadLink" style="display: none;" download="vectorized_result.svg">
+            <button style="background: #28a745;">下载 SVG</button>
+        </a>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingText = document.getElementById('loadingText');
+        const svgPreview = document.getElementById('svg-preview');
+        const downloadLink = document.getElementById('downloadLink');
+
+        submitBtn.addEventListener('click', async () => {
+            const file = imageInput.files[0];
+            if (!file) {
+                alert("请先选择一张图片！");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
+
+            submitBtn.disabled = true;
+            loadingText.style.display = "block";
+            svgPreview.style.display = "none";
+            downloadLink.style.display = "none";
+
+            try {
+                // 使用相对路径调用当前服务器下的接口
+                const response = await fetch("/api/vectorize", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error(`服务器报错: ${response.status}`);
+
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+
+                svgPreview.src = objectUrl;
+                svgPreview.style.display = "block";
+                downloadLink.href = objectUrl;
+                downloadLink.style.display = "inline-block";
+            } catch (error) {
+                console.error("转换失败:", error);
+                alert("请求失败，请检查控制台报错！");
+            } finally {
+                submitBtn.disabled = false;
+                loadingText.style.display = "none";
+            }
+        });
+    </script>
+</body>
+</html>
